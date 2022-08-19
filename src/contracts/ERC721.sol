@@ -8,9 +8,15 @@ contract ERC721 {
     uint256 indexed tokenId
   );
 
+  event Approval(
+    address indexed owner,
+    address indexed approved,
+    uint256 indexed tokenId
+  );
+
   mapping(uint256 => address) private _tokenOwner;
   mapping(address => uint256) private _OwnedTokensCount;
-  mapping(uint256 => address) private tokenApprovals;
+  mapping(uint256 => address) private _tokenApprovals;
 
   function balanceOf(address _owner) public view returns (uint256) {
     require(_owner != address(0), "owner query for non-existent token");
@@ -23,14 +29,14 @@ contract ERC721 {
     return owner;
   }
 
-  function _exist(uint256 tokenId) internal view returns (bool) {
+  function _exists(uint256 tokenId) internal view returns (bool) {
     address owner = _tokenOwner[tokenId];
     return owner != address(0);
   }
 
   function _mint(address to, uint256 tokenId) internal virtual {
     require(to != address(0), "ERC721: minting to the zero address");
-    require(!_exist(tokenId), "ERC721: token already minted");
+    require(!_exists(tokenId), "ERC721: token already minted");
     _tokenOwner[tokenId] = to;
     _OwnedTokensCount[to] += 1;
 
@@ -59,6 +65,28 @@ contract ERC721 {
     address _to,
     uint256 _tokenId
   ) public {
+    require(isApprovedOrOwner(msg.sender, _tokenId));
     _transferFrom(_from, _to, _tokenId);
+  }
+
+  function approve(address _to, uint256 tokenId) public {
+    address owner = ownerOf(tokenId);
+    require(_to != owner, "Error - approval to current owner");
+    require(
+      msg.sender == owner,
+      "Current caller is not the owner of the token"
+    );
+    _tokenApprovals[tokenId] = _to;
+    emit Approval(owner, _to, tokenId);
+  }
+
+  function isApprovedOrOwner(address spender, uint256 tokenId)
+    internal
+    view
+    returns (bool)
+  {
+    require(_exists(tokenId), "token does not exist");
+    address owner = ownerOf(tokenId);
+    return (spender == owner); /*|| getApproved(tokenId) == spender*/
   }
 }
